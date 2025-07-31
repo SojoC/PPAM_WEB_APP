@@ -1,0 +1,16 @@
+# --- Framework Principal ---
+Flask
+gunicorn
+
+# --- Base de Datos (PostgreSQL) ---
+Flask-SQLAlchemy
+psycopg2-binary
+
+# --- Autenticación y Seguridad ---
+Flask-Login
+Werkzeug
+
+# --- Motor de Búsqueda y WhatsApp ---
+selenium
+fuzzywuzzy
+python-Levenshtein
