@@ -1,97 +1,86 @@
 import csv
-import sqlite3
 import os
-import random
+import re
+from flask import Flask
+from core.models import db, User, Role, Privilegio, Congregacion, Territorio
 
-def migrar_desde_csv():
+def crear_app_para_migracion():
+    """Crea una instancia mínima de Flask solo para la migración."""
+    app = Flask(__name__)
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'ppam.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    return app
+
+def migrar_base_de_datos(app):
     """
-    Lee datos desde un archivo CSV y los guarda en una nueva base de datos SQLite.
-    Este método no necesita pyodbc y es a prueba de errores de drivers.
+    Script completo para inicializar y poblar la base de datos desde CSV.
     """
-    csv_path = 'contactos.csv'
-    db_nueva_path = 'ppam.db'
+    with app.app_context():
+        csv_path = 'contactos.csv'
+        if not os.path.exists(csv_path):
+            print(f"❌ ERROR: No se encontró el archivo '{csv_path}'.")
+            return
 
-    # --- 1. Verificar si existe el archivo CSV ---
-    if not os.path.exists(csv_path):
-        print(f"❌ ERROR: No se encontró el archivo '{csv_path}'.")
-        print("Asegúrate de que esté en la misma carpeta que este script.")
-        return
+        print("Iniciando la creación y migración de la base de datos...")
+        db.create_all()
 
-    # --- 2. Conectar a SQLite (se crea si no existe) ---
-    print(f"🚀 Creando o conectando a la nueva base de datos en '{db_nueva_path}'...")
-    conn_nueva = sqlite3.connect(db_nueva_path)
-    cursor_nueva = conn_nueva.cursor()
+        # --- Poblar Roles y Privilegios ---
+        print("✍️  Poblando Roles y Privilegios...")
+        roles_a_crear = ['admin', 'editor', 'analyst']
+        for role_name in roles_a_crear:
+            if not db.session.execute(db.select(Role).filter_by(name=role_name)).scalar_one_or_none():
+                db.session.add(Role(name=role_name))
+        db.session.commit()
+        
+        # --- Crear usuario administrador ---
+        if not db.session.execute(db.select(User).filter_by(username='admin')).scalar_one_or_none():
+            admin_role = db.session.execute(db.select(Role).filter_by(name='admin')).scalar_one()
+            admin_user = User(username='admin', email='admin@ppam.com', nombre_completo='Administrador', role=admin_role)
+            admin_user.set_password('admin')
+            db.session.add(admin_user)
+            db.session.commit()
 
-    # --- 3. Crear las nuevas tablas en SQLite ---
-    print("🏗️ Creando estructura de tablas (Congregaciones, Territorios, Contactos)...")
-    cursor_nueva.execute("DROP TABLE IF EXISTS Territorios;")
-    cursor_nueva.execute("DROP TABLE IF EXISTS Contactos;")
-    cursor_nueva.execute("DROP TABLE IF EXISTS Congregaciones;")
+        # --- Migrar Contactos desde CSV ---
+        with open(csv_path, mode='r', encoding='latin-1') as file:
+            csv_reader = csv.DictReader(file, delimiter=';')
+            contactos_csv = list(csv_reader)
+        
+        congregaciones_unicas = sorted(list(set((row['Circuito'], row['Congregacion']) for row in contactos_csv if row['Congregacion'])))
+        mapa_congregacion_id = {}
+        for circuito, congregacion_nombre in congregaciones_unicas:
+            cong_obj = db.session.execute(db.select(Congregacion).filter_by(nombre=congregacion_nombre, circuito=circuito)).scalar_one_or_none()
+            if not cong_obj:
+                cong_obj = Congregacion(nombre=congregacion_nombre, circuito=circuito)
+                db.session.add(cong_obj)
+                db.session.commit()
+            mapa_congregacion_id[(circuito, congregacion_nombre)] = cong_obj.id
 
-    cursor_nueva.execute("""
-        CREATE TABLE Congregaciones (
-            CongregacionID INTEGER PRIMARY KEY AUTOINCREMENT,
-            NombreCongregacion TEXT NOT NULL,
-            Circuito TEXT NOT NULL
-        );
-    """)
-    cursor_nueva.execute("""
-        CREATE TABLE Territorios (
-            TerritorioID INTEGER PRIMARY KEY AUTOINCREMENT,
-            NombreTerritorio TEXT NOT NULL,
-            CongregacionID_FK INTEGER NOT NULL,
-            FOREIGN KEY (CongregacionID_FK) REFERENCES Congregaciones (CongregacionID)
-        );
-    """)
-    cursor_nueva.execute("""
-        CREATE TABLE Contactos (
-            ContactoID INTEGER PRIMARY KEY AUTOINCREMENT,
-            Nombre TEXT NOT NULL,
-            Telefono TEXT,
-            CongregacionID_FK INTEGER NOT NULL,
-            FOREIGN KEY (CongregacionID_FK) REFERENCES Congregaciones (CongregacionID)
-        );
-    """)
-    conn_nueva.commit()
+        for contacto in contactos_csv:
+            nombre_completo = contacto.get('Nombre', '').strip()
+            if not nombre_completo: continue
+                
+            username = re.sub(r'[^a-z0-9.]', '', nombre_completo.lower().replace(' ', '.').strip())
+            if not db.session.execute(db.select(User).filter_by(username=username)).scalar_one_or_none():
+                cong_id = mapa_congregacion_id.get((contacto['Circuito'], contacto['Congregacion']))
+                if cong_id:
+                    editor_role = db.session.execute(db.select(Role).filter_by(name='editor')).scalar_one()
+                    nuevo_usuario = User(
+                        nombre_completo=nombre_completo,
+                        telefono=contacto.get('Telefono'),
+                        congregacion_id=cong_id,
+                        username=username,
+                        email=f"{username}@example.com",
+                        role_id=editor_role.id
+                    )
+                    nuevo_usuario.set_password('123456')
+                    db.session.add(nuevo_usuario)
+        db.session.commit()
 
-    # --- 4. Leer los datos desde el archivo CSV ---
-    print(f"📖 Leyendo datos de '{csv_path}'...")
-    with open(csv_path, mode='r', encoding='latin-1') as file:
-        csv_reader = csv.DictReader(file, delimiter=';')
-        contactos_originales = list(csv_reader)
-    print(f"✅ Se encontraron {len(contactos_originales)} registros en el CSV.")
-
-    # --- 5. Poblar las nuevas tablas ---
-    print("✍️  Escribiendo datos en la nueva base de datos...")
-    
-    congregaciones_unicas = sorted(list(set((row['Circuito'], row['Congregacion']) for row in contactos_originales if row['Congregacion'])))
-    mapa_congregacion_id = {}
-    for circuito, congregacion in congregaciones_unicas:
-        cursor_nueva.execute("INSERT INTO Congregaciones (NombreCongregacion, Circuito) VALUES (?, ?)", (congregacion, circuito))
-        mapa_congregacion_id[(circuito, congregacion)] = cursor_nueva.lastrowid
-    conn_nueva.commit()
-
-    for contacto in contactos_originales:
-        cong_id = mapa_congregacion_id.get((contacto['Circuito'], contacto['Congregacion']))
-        if cong_id:
-            cursor_nueva.execute("INSERT INTO Contactos (Nombre, Telefono, CongregacionID_FK) VALUES (?, ?, ?)",
-            (contacto['Nombre'], contacto['Telefono'], cong_id))
-    conn_nueva.commit()
-    
-    nombres_territorios_pool = [
-        "Los Guaritos", "La Pica", "El Furrial", "Boquerón", "Las Cocuizas", "San Simón", "Santa Inés", 
-        "Alto de los Godos", "La Cruz", "Jusepín", "El Corozo", "San Vicente", "La Toscana", "Puertas del Sur",
-        "Lomas del Viento", "El Paraíso", "La Floresta", "Costó Arriba", "Mercado Viejo", "Plaza Piar"
-    ]
-    for cong_id in mapa_congregacion_id.values():
-        territorios_asignados = random.sample(nombres_territorios_pool, min(10, len(nombres_territorios_pool)))
-        for territorio in territorios_asignados:
-            cursor_nueva.execute("INSERT INTO Territorios (NombreTerritorio, CongregacionID_FK) VALUES (?, ?)", (territorio, cong_id))
-    conn_nueva.commit()
-
-    conn_nueva.close()
-    print("\n🎉 ¡Migración completada con éxito! 🎉")
-    print(f"El archivo '{db_nueva_path}' ha sido creado a partir de tu archivo CSV.")
+        print("✅ Contactos migrados a la tabla de Usuarios.")
+        print("\n🎉 ¡Base de datos definitiva creada y poblada exitosamente! 🎉")
 
 if __name__ == '__main__':
-    migrar_desde_csv()
+    app = crear_app_para_migracion()
+    migrar_base_de_datos(app)
