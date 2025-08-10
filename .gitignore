@@ -1,12 +1,29 @@
 # Entorno Virtual
 .venv/
 
-# Archivos de Python Cache
+# Archivos de Cache de Python
 __pycache__/
 *.pyc
 
 # Base de datos local
 ppam.db
 
-# Archivos de Sistema
-.DS_Store
+# Archivos de prueba y perfiles de navegador
+whatsapp_profile/
+whatsapp_profile_test/
+playwright_whatsapp_profile/
+playwright_apollo_profile/
+whatsapp_final_profile/
+playwright_profile/
+
+# Archivos de imagen de error y capturas
+*.png
+*.jpg
+
+# Archivos de texto de prueba
+*.txt
+
+# Archivos de prueba de Python
+prueba_*.py
+test_*.py
+Pruebas/

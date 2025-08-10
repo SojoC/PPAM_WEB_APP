@@ -1,82 +1,45 @@
-<!DOCTYPE html>
-<html lang="es" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPAM Web - Buscador</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-
-    <style>
-        body { background-color: #212529; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar navbar-expand-lg navbar-dark bg-black shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">
-                <i class="bi bi-card-checklist me-2"></i> PPAM Web
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="mainNav">
-                {% if current_user.is_authenticated %}
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('home') }}">Buscador</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('registros.nuevo_registro') }}">Añadir Registro</a>
-                    </li>
-                    
-                    {% if current_user.role.name == 'admin' %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            Administración
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('admin.user_management') }}">Gestión de Usuarios</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.logout') }}">Cerrar Sesión ({{ current_user.username }})</a>
-                    </li>
-                </ul>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-
-    <main class="container my-4">
+{% extends "base.html" %}
+{% block title %}Buscador - PPAM Web{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
         <div class="text-center mb-4">
             <h1 class="display-5">Buscador de Contactos</h1>
-            <p class="text-muted">Escribe para buscar por nombre, congregación o territorio.</p>
+            <p class="text-muted">Busca por nombre, congregación, territorio o usa comas para búsquedas múltiples.</p>
         </div>
         <div class="row justify-content-center">
-            <div class="col-lg-8">
+            <div class="col-lg-10">
                 <div class="input-group input-group-lg mb-4">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" 
-                           class="form-control" 
-                           id="terminoBusqueda" 
-                           placeholder="Ej: Carlos, El Parque, Los Guaritos..."
-                           aria-label="Término de búsqueda">
+                    <input type="text" class="form-control" id="terminoBusqueda" placeholder="Ej: carlos sojo, monagas 1...">
                 </div>
             </div>
         </div>
-        <div id="listaResultados" class="row">
+        <div id="listaResultados" class="row"></div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card bg-secondary sticky-top">
+            <div class="card-header">
+                <h5><i class="bi bi-whatsapp me-2"></i>Panel de Envío (vía API)</h5>
             </div>
-    </main>
+            <div class="card-body">
+                <div class="alert alert-success text-center">
+                    Estado: Siempre Conectado
+                </div>
+                <div class="mb-3">
+                    <label for="mensajeWhatsapp" class="form-label">Mensaje a Enviar:</label>
+                    <textarea id="mensajeWhatsapp" class="form-control" rows="5" placeholder="Escribe tu mensaje aquí..."></textarea>
+                </div>
+                <div class="d-grid">
+                    <button id="btnEnviarWhatsapp" class="btn btn-primary" disabled>Enviar a 0 Seleccionados</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

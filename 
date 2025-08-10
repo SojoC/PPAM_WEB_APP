@@ -1,0 +1,23 @@
+[33mcommit 77fc376c7f6da12db2a72b73820ae794b061c303[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: SojoC <sojoc@gmail.com>
+Date:   Sat Aug 2 13:40:28 2025 -0400
+
+    Ajustes finales en el motor de búsqueda
+
+[33mcommit 66a65e7fe62980ff39ec15e42d4b7ec82c41aaba[m
+Author: SojoC <sojoc@gmail.com>
+Date:   Sat Aug 2 12:17:22 2025 -0400
+
+    Fix: Asegurar creación de tablas en app startup
+
+[33mcommit 4457e3fa4e051a4a014dfaf8919168df4eeac7ea[m
+Author: SojoC <sojoc@gmail.com>
+Date:   Sat Aug 2 10:41:43 2025 -0400
+
+    Versión final para despliegue en Render
+
+[33mcommit 7ca14fdb3f6a5e45937e0a419719f3743f4fc4f4[m
+Author: SojoC <sojoc@gmail.com>
+Date:   Thu Jul 31 13:35:01 2025 -0400
+
+    Versión inicial del proyecto PPAM_Web

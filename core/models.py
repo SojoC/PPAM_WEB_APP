@@ -2,6 +2,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -67,3 +68,23 @@ class RegistroActividad(db.Model):
     videos = db.Column(db.Integer, default=0)
     revisitas = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+# En src/core/models.py, al final del archivo
+
+class AsignacionVisita(db.Model):
+    __tablename__ = 'asignaciones_visita'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    # Datos de la persona a visitar
+    nombre_interesado = db.Column(db.String(150), nullable=False)
+    direccion = db.Column(db.String(255), nullable=False)
+    telefono_interesado = db.Column(db.String(50), nullable=True)
+    observaciones = db.Column(db.Text, nullable=True)
+    
+    # Datos de la asignación
+    fecha_asignacion = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    estado = db.Column(db.String(50), nullable=False, default='Pendiente') # Pendiente -> Confirmado
+    
+    # Relación con el publicador asignado
+    publicador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    publicador = db.relationship('User', backref='visitas_asignadas')
