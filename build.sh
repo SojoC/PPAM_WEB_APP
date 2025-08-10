@@ -2,11 +2,14 @@
 # exit on error
 set -o errexit
 
-# Instala las librerías desde el archivo en la raíz actual (que es 'src')
-pip install -r requirements.txt
+# Le decimos a pip dónde está el archivo de requerimientos
+pip install -r src/requirements.txt
 
-# Aplica las actualizaciones a la base de datos (crea las tablas)
+# Entramos a la carpeta src para que los comandos de flask funcionen
+cd src
+
+# Aplicamos las migraciones a la base de datos
 flask db upgrade
 
-# Ejecuta nuestro script para poblar la base de datos con los contactos
+# Poblamos la base de datos
 python migracion.py
