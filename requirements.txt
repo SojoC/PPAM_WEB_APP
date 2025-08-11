@@ -1,13 +1,12 @@
 Flask
-gunicorn
-Flask-SQLAlchemy
-Flask-Migrate
 Flask-Login
+Flask-Migrate
+Flask-SQLAlchemy
+gunicorn
 psycopg2-binary
-twilio
-playwright
 fuzzywuzzy
 python-Levenshtein
+playwright
 fpdf2
 pandas
 openpyxl
