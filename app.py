@@ -38,6 +38,9 @@ def create_app():
     from api.endpoints import api as api_blueprint, motor
     from registros import registros_bp
     from admin import admin_bp
+    # --- REGISTRAR COMANDOS DE CLI ---
+    from commands import seed
+    app.cli.add_command(seed)
     
     # REGISTRO DE TODOS LOS MÓDULOS
     app.register_blueprint(auth_blueprint)
