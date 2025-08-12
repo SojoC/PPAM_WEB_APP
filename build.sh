@@ -5,23 +5,17 @@ set -o errexit
 echo "--- PASO 1: Instalando dependencias de Python ---"
 pip install -r requirements.txt
 
-echo "--- PASO 2: Definiendo la aplicación para los comandos de Flask ---"
+echo "--- PASO 2: Instalando navegadores para Playwright ---"
+playwright install
+
+echo "--- PASO 3: Definiendo la aplicación para los comandos de Flask ---"
 export FLASK_APP=app:create_app
 
-echo "--- PASO 3: Creando/Actualizando las tablas de la base de datos ---"
+echo "--- PASO 4: Creando/Actualizando las tablas de la base de datos ---"
 flask db upgrade
 
-# Puebla la base de datos con nuestro nuevo comando
-flask seed
-
-echo "--- PASO 4: Poblando la base de datos con los 502 contactos ---"
+echo "--- PASO 5: Poblando la base de datos con los datos iniciales ---"
 python migracion.py
 
-echo "--- MISIÓN CUMPLIDA: El build se ha completado exitosamente ---"
-
-
-
-
-
-
+echo "--- ¡Build completado exitosamente! ---"
 

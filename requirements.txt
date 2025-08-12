@@ -10,3 +10,4 @@ playwright
 fpdf2
 pandas
 openpyxl
+alembic

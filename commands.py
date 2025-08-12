@@ -36,7 +36,7 @@ def seed():
     print("-> 👤 Creando usuario 'admin'...")
     if not db.session.execute(db.select(User).filter_by(username='admin')).scalar_one_or_none():
         admin_role = db.session.execute(db.select(Role).filter_by(name='admin')).scalar_one()
-        admin_user = User(username='admin', email='admin@ppam.com', nombre_completo='Administrador del Sistema', role=admin_role)
+        admin_user = User(username='admin', email='admin@ppam.com', nombre_completo='Administrador del Sistema'[:128], role=admin_role)
         admin_user.set_password('admin')
         db.session.add(admin_user)
         db.session.commit()
