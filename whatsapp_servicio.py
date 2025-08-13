@@ -1,18 +1,14 @@
-import asyncio
-from playwright.async_api import async_playwright, TimeoutError
 import os
-import re
-import base64
+from playwright.async_api import async_playwright, TimeoutError
 from contextlib import suppress
-from typing import List, Optional
+import asyncio
 
-# Selectores robustos basados en tu archivo
 SEL_QR = ["div[data-testid='qrcode'] canvas"]
 SEL_LOGGED = ["div[data-testid='chat-list']"]
-SEL_MSGBOX = ["div[data-testid='conversation-compose-box-input']", "div[contenteditable='true'][data-tab='10']"]
-
-def _to_dataurl(png: bytes) -> str:
-    return "data:image/png;base64," + base64.b64encode(png).decode("utf-8")
+SEL_MSGBOX = [
+    "div[data-testid='conversation-compose-box-input']",
+    "div[contenteditable='true'][data-tab='10']"
+]
 
 class WhatsAppServicio:
     def __init__(self, perfil_dir="playwright_whatsapp_profile"):
@@ -20,7 +16,7 @@ class WhatsAppServicio:
         self._pw = None
         self._ctx = None
         self._page = None
-        self._lock = asyncio.Semaphore(1)
+        self._lock = asyncio.Lock()
         print("✅ Servicio de WhatsApp (Playwright) listo.")
 
     async def _ensure_context(self):
@@ -30,66 +26,77 @@ class WhatsAppServicio:
             return
         os.makedirs(self.perfil_dir, exist_ok=True)
         self._pw = await async_playwright().start()
-        # Headless se activa si la variable de entorno RENDER está presente
-        headless_mode = os.environ.get('RENDER', False)
+        # Headless si está en Render
+        headless_mode = os.environ.get('RENDER', '').lower() in ('1', 'true', 'yes')
         self._ctx = await self._pw.chromium.launch_persistent_context(
             user_data_dir=self.perfil_dir,
-            headless=bool(headless_mode),
+            headless=headless_mode,
             args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
         )
         self._page = self._ctx.pages[0] if self._ctx.pages else await self._ctx.new_page()
 
-    async def _wait_any(self, selectors: List[str], state="visible", timeout=15000):
+    async def _wait_any(self, selectors, state="visible", timeout=30000):
         for sel in selectors:
-            with suppress(TimeoutError):
+            try:
                 el = await self._page.wait_for_selector(sel, state=state, timeout=timeout)
-                if el: return el, sel
+                return el, sel
+            except Exception:
+                continue
         return None, None
 
     async def conectar_whatsapp(self) -> dict:
         async with self._lock:
             await self._ensure_context()
             await self._page.goto("https://web.whatsapp.com", wait_until="domcontentloaded", timeout=90000)
-            
             el, sel = await self._wait_any(SEL_QR + SEL_LOGGED, state="visible", timeout=90000)
-            
+            headless_mode = os.environ.get('RENDER', '').lower() in ('1', 'true', 'yes')
+            if headless_mode and el and sel in SEL_QR:
+                print("❌ No se puede escanear QR en Render. Sube el perfil autenticado.")
+                return {"status": "error", "mensaje": "No se puede escanear QR en Render. Sube el perfil autenticado."}
             if el and sel in SEL_QR:
                 print("-> Se necesita escanear QR.")
-                qr_el, _ = await self._wait_any(SEL_QR, timeout=5000)
-                if qr_el:
-                    return {"status": "necesita_qr", "qr_code": _to_dataurl(await qr_el.screenshot())}
-            
+                return {"status": "necesita_qr"}
             if el and sel in SEL_LOGGED:
                 print("-> Sesión ya iniciada.")
                 return {"status": "logueado"}
-
             return {"status": "error", "mensaje": "No se pudo determinar el estado de la sesión."}
 
     async def esta_logueado(self) -> bool:
-        if not self._page or self._page.is_closed(): return False
-        el, _ = await self._wait_any(SEL_LOGGED, timeout=3000)
-        return el is not None
+        await self._ensure_context()
+        try:
+            await self._page.goto("https://web.whatsapp.com", wait_until="domcontentloaded", timeout=60000)
+            el, sel = await self._wait_any(SEL_LOGGED, state="visible", timeout=15000)
+            return bool(el)
+        except Exception:
+            return False
 
     async def enviar_mensaje(self, telefono: str, mensaje: str) -> bool:
         async with self._lock:
+            await self._ensure_context()
+            # Verifica sesión activa
+            el, sel = await self._wait_any(SEL_LOGGED, state="visible", timeout=15000)
+            if not el:
+                print("❌ No hay sesión activa en WhatsApp Web.")
+                return False
+            numero = ''.join(filter(str.isdigit, telefono))
+            if not numero.startswith('58'):
+                numero = '58' + numero[-10:]  # Ajusta según país
+            numero = f'+{numero}'
+            print(f"➡️  Preparando envío a {numero}...")
             try:
-                await self._ensure_context()
-                if not await self.esta_logueado():
-                    print("-> Sesión no activa. Abortando envío.")
+                await self._page.goto(f"https://web.whatsapp.com/send?phone={numero}", timeout=60000)
+                input_box, _ = await self._wait_any(SEL_MSGBOX, state="visible", timeout=20000)
+                if not input_box:
+                    print("❌ No se encontró la caja de texto para el mensaje.")
                     return False
-
-                phone = re.sub(r"\D", "", telefono or "")
-                await self._page.goto(f"https://web.whatsapp.com/send?phone={phone}", timeout=60000)
-                
-                box_el, _ = await self._wait_any(SEL_MSGBOX, state="visible", timeout=30000)
-                if not box_el:
-                    raise RuntimeError("No se encontró la caja de texto del chat.")
-                
-                await box_el.click()
-                await box_el.fill(mensaje)
-                await box_el.press("Enter")
-                await self._page.wait_for_timeout(2000)
-                
+                await input_box.click()
+                await asyncio.sleep(0.5)
+                await input_box.fill("")  # Limpia el campo
+                await asyncio.sleep(0.5)
+                await input_box.type(mensaje, delay=30)
+                await asyncio.sleep(1)
+                await input_box.press("Enter")
+                await asyncio.sleep(2)
                 print(f"✅ Mensaje enviado a {telefono}")
                 return True
             except Exception as e:
@@ -97,6 +104,7 @@ class WhatsAppServicio:
                 return False
 
     async def cerrar(self):
-        async with self._lock:
-            if self._ctx: await self._ctx.close()
-            if self._pw: await self._pw.stop()
+        if self._ctx:
+            await self._ctx.close()
+        if self._pw:
+            await self._pw.stop()
