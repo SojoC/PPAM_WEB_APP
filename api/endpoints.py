@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from core.motor_busqueda import MotorBusquedaModerno
+from core.motor_busqueda import motor
 from whatsapp_servicio import WhatsAppServicio
 import asyncio
 import threading
@@ -9,7 +9,7 @@ import time
 api = Blueprint('api', __name__)
 
 # Se crean las instancias de nuestros servicios, incluyendo el motor
-motor = MotorBusquedaModerno()
+
 ws_service = WhatsAppServicio()
 
 @api.route('/api/buscar', methods=['POST'])

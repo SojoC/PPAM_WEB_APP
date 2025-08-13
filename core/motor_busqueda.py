@@ -124,3 +124,5 @@ class MotorBusquedaModerno:
             # --- LÍNEA AÑADIDA PARA INCLUIR PRIVILEGIOS ---
             "privilegios": [p.nombre for p in usuario.privilegios]
         }
+    # Crea una instancia única del motor que será usada por toda la aplicación
+motor = MotorBusquedaModerno()

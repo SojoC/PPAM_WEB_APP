@@ -34,7 +34,8 @@ def create_app():
 
     # --- BLUEPRINTS ---
     from auth import auth as auth_blueprint
-    from api.endpoints import api as api_blueprint, motor
+    from api.endpoints import api as api_blueprint
+    from core.motor_busqueda import motor
     from registros import registros_bp
     from admin import admin_bp
     
