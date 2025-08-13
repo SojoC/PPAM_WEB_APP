@@ -1,27 +1,21 @@
 from flask import Blueprint, request, jsonify
-from core.motor_busqueda import motor
+from core.motor_busqueda import MotorBusquedaModerno
 from whatsapp_servicio import WhatsAppServicio
 import asyncio
 import threading
 import time
 
-# Se crea el "plano" de la API
 api = Blueprint('api', __name__)
-
-# Se crean las instancias de nuestros servicios, incluyendo el motor
-
+motor = MotorBusquedaModerno()
 ws_service = WhatsAppServicio()
 
 @api.route('/api/buscar', methods=['POST'])
 def buscar():
-    """
-    Ruta para buscar contactos. Responde a la petición inicial para cargar la tabla.
-    """
     termino = request.get_json().get('termino', '')
     resultados = motor.buscar_contactos(termino)
     return jsonify({"usuarios": resultados})
 
-# --- RUTAS PARA WHATSAPP (CORREGIDAS Y ROBUSTAS) ---
+# --- RUTAS PARA WHATSAPP (CORREGIDAS PARA PLAYWRIGHT/ASYNCIO) ---
 @api.route('/api/whatsapp/conectar', methods=['POST'])
 def whatsapp_conectar():
     try:
@@ -45,11 +39,12 @@ def whatsapp_enviar():
     mensaje = data.get('mensaje', '')
 
     def tarea_envio():
+        # Cada hilo necesita su propio bucle de eventos asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         for usuario in usuarios:
             loop.run_until_complete(ws_service.enviar_mensaje(usuario['telefono'], mensaje))
-            time.sleep(5)
+            time.sleep(5) # Pausa entre mensajes
         loop.close()
     
     thread = threading.Thread(target=tarea_envio)
