@@ -11,54 +11,36 @@ migrate = Migrate()
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    return User.query.get(int(user_id))
 
 def create_app():
     """Crea y configura la instancia de la aplicación Flask."""
     app = Flask(__name__)
+    app.config.from_object('config.Config')  # Asegúrate de tener tu configuración
 
-    # --- CONFIGURACIÓN ---
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or f"sqlite:///{os.path.join(BASE_DIR, 'ppam.db')}"
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-secreta-definitiva-ppam')
-
-    # --- INICIALIZACIÓN DE COMPONENTES ---
+    # Inicializa extensiones
     db.init_app(app)
-    migrate.init_app(app, db)
     login_manager.init_app(app)
+    migrate.init_app(app, db)
 
     # --- BLUEPRINTS ---
     from auth import auth as auth_blueprint
     from api.endpoints import api as api_blueprint
-    from core.motor_busqueda import motor
+    app.register_blueprint(api_blueprint, url_prefix='/api')
     from registros import registros_bp
     from admin import admin_bp
-    
+
     app.register_blueprint(auth_blueprint)
-    app.register_blueprint(api_blueprint)
     app.register_blueprint(registros_bp)
     app.register_blueprint(admin_bp)
 
-    # --- INICIALIZACIÓN DEL MOTOR ---
-    with app.app_context():
-        motor.init_app(app)
-
-    # --- RUTA PRINCIPAL ---
-    from flask_login import login_required
-    from flask import render_template
-
-    @app.route('/')
-    @login_required
-    def home():
-        return render_template('index.html')
+    @api.route('/buscar', methods=['POST'])
+    def buscar():
+        # Lógica para manejar la búsqueda
+        pass
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)
