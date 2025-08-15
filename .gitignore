@@ -1,3 +1,16 @@
+# Playwright profiles y archivos grandes
+playwright_whatsapp_profile/
+playwright_whatsapp_profile.zip
+playwright_profile/
+whatsapp_profile/
+whatsapp_profile_test/
+whatsapp_final_profile/
+*.db
+*.sqlite3
+*.accdb
+temporal/
+__pycache__/
+*.pyc
 # Entorno Virtual
 .venv/
 
