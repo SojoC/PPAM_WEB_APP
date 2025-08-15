@@ -10,10 +10,13 @@ class WhatsAppServicio:
     async def abrir_sesion(self):
         headless = os.environ.get("RENDER") == "true"
         async with async_playwright() as p:
+            chromium_args = ["--no-sandbox", "--disable-setuid-sandbox"]
+            if not headless:
+                chromium_args.append("--start-maximized")
             navegador = await p.chromium.launch_persistent_context(
                 user_data_dir=self.perfil_dir,
                 headless=headless,
-                args=["--start-maximized"] if not headless else []
+                args=chromium_args
             )
             pagina = await navegador.new_page()
             print("🌐 Abriendo WhatsApp Web...")
