@@ -146,3 +146,50 @@ async function enviarMensajesWhatsapp() {
         alert(`Error al enviar: ${error.message}`);
     }
 }
+
+// --- GESTIÓN DE PERFIL DE WHATSAPP WEB ---
+
+document.getElementById('form-subir-perfil').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('input-perfil');
+    if (!input.files.length) return;
+    const formData = new FormData();
+    formData.append('perfil', input.files[0]);
+    const msgDiv = document.getElementById('perfil-msg');
+    msgDiv.textContent = "Subiendo perfil...";
+    try {
+        const resp = await fetch('/api/whatsapp/subir_perfil', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await resp.json();
+        msgDiv.textContent = data.mensaje || (data.status === "ok" ? "Perfil subido correctamente." : "Error al subir perfil.");
+    } catch (err) {
+        msgDiv.textContent = "Error de red al subir perfil.";
+    }
+});
+
+document.getElementById('btn-descargar-perfil').addEventListener('click', async function() {
+    const msgDiv = document.getElementById('perfil-msg');
+    msgDiv.textContent = "Preparando descarga...";
+    try {
+        const resp = await fetch('/api/whatsapp/descargar_perfil');
+        if (resp.ok) {
+            const blob = await resp.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "playwright_whatsapp_profile.zip";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            msgDiv.textContent = "Descarga iniciada.";
+        } else {
+            const data = await resp.json();
+            msgDiv.textContent = data.mensaje || "No se pudo descargar el perfil.";
+        }
+    } catch (err) {
+        msgDiv.textContent = "Error de red al descargar perfil.";
+    }
+});

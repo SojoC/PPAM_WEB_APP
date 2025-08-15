@@ -1,11 +1,28 @@
 {% extends "base.html" %}
+
 {% block title %}Buscador - PPAM Web{% endblock %}
+
+{% block head %}
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+<style>
+    /* Estilos para que el editor se vea bien en el tema oscuro */
+    .tox-tinymce {
+        border-radius: 0.375rem !important;
+    }
+    /* Ocultar el aviso de "This domain is not registered" */
+    .tox-notifications-container { 
+        display: none !important; 
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-lg-8">
         <div class="text-center mb-4">
-            <h1 class="display-5">Buscador de Contactos</h1>
-            <p class="text-muted">Busca por nombre, congregación, territorio o usa comas para búsquedas múltiples.</p>
+            <h1 class="display-5">Buscador de Publicadores</h1>
+            <p class="text-muted">Busca por nombre, congregación, o usa comas para búsquedas múltiples.</p>
         </div>
         <div class="row justify-content-center">
             <div class="col-lg-10">
@@ -20,19 +37,27 @@
 
     <div class="col-lg-4">
         <div class="card bg-secondary sticky-top">
-            <div class="card-header">
-                <h5><i class="bi bi-whatsapp me-2"></i>Panel de Envío (vía API)</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-whatsapp me-2"></i>Panel de Envío</h5>
+                <div id="whatsapp-status" class="badge bg-warning">Desconectado</div>
             </div>
             <div class="card-body">
-                <div class="alert alert-success text-center">
-                    Estado: Siempre Conectado
+                <div id="qr-container" class="text-center mb-3" style="display: none;">
+                    <p class="small text-muted">Escanea el código QR para conectar:</p>
+                    <img id="qr-image" src="" alt="Código QR" class="img-fluid rounded">
                 </div>
-                <div class="mb-3">
-                    <label for="mensajeWhatsapp" class="form-label">Mensaje a Enviar:</label>
-                    <textarea id="mensajeWhatsapp" class="form-control" rows="5" placeholder="Escribe tu mensaje aquí..."></textarea>
+                <div class="d-grid mb-3">
+                    <button id="btnConectarWhatsapp" class="btn btn-success">Conectar WhatsApp</button>
                 </div>
-                <div class="d-grid">
-                    <button id="btnEnviarWhatsapp" class="btn btn-primary" disabled>Enviar a 0 Seleccionados</button>
+                <hr>
+                
+                <textarea id="editor-whatsapp"></textarea>
+
+                <div class="d-grid mt-3">
+                    <button id="btnEnviarWhatsapp" class="btn btn-primary" disabled>
+                        <i class="bi bi-send-fill me-2"></i>
+                        <span>Enviar a 0 Seleccionados</span>
+                    </button>
                 </div>
             </div>
         </div>
