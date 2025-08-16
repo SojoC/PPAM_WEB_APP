@@ -1,6 +1,8 @@
 import os
 
+
 import os
+import datetime
 from playwright.async_api import async_playwright
 
 class WhatsAppServicio:
@@ -102,7 +104,8 @@ class WhatsAppServicio:
                     print("✅ Buscador de chats encontrado.")
                     await search_input.type(numero, delay=100)
                     await pagina.wait_for_timeout(3000)
-                    print(f"📝 Número {numero} escrito en el buscador.")
+                            inicio = datetime.datetime.now()
+                            print(f"[METRICA] INICIO envio a {telefono} a las {inicio}")
                     try:
                         first_result = await pagina.wait_for_selector('[data-testid="cell-frame-container"]', timeout=5000)
                         await first_result.click()

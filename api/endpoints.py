@@ -73,13 +73,22 @@ def whatsapp_enviar():
     usuarios = data.get('usuarios', [])
     mensaje = data.get('mensaje', '')
 
+
+    import datetime
     def tarea_de_envio_en_hilo():
         from whatsapp_servicio import WhatsAppServicio
         ws_service_local = WhatsAppServicio()
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         for usuario in usuarios:
-            loop.run_until_complete(ws_service_local.enviar_mensaje(usuario['telefono'], mensaje))
+            inicio = datetime.datetime.now()
+            print(f"[METRICA] Intentando enviar a {usuario['telefono']} a las {inicio}")
+            try:
+                resultado = loop.run_until_complete(ws_service_local.enviar_mensaje(usuario['telefono'], mensaje))
+                fin = datetime.datetime.now()
+                print(f"[METRICA] Resultado: {resultado} para {usuario['telefono']} en {fin-inicio}")
+            except Exception as e:
+                print(f"[METRICA] ERROR enviando a {usuario['telefono']}: {e}")
         loop.close()
 
     # Inicia el hilo que hará el trabajo pesado.
