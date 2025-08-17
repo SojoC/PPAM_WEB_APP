@@ -43,9 +43,12 @@ def whatsapp_conectar():
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        resultado = loop.run_until_complete(ws_service.conectar_whatsapp())
+        qr_base64 = loop.run_until_complete(ws_service.conectar_whatsapp())
         loop.close()
-        return jsonify(resultado)
+        if qr_base64:
+            return jsonify({"qr": qr_base64, "status": "qr"})
+        else:
+            return jsonify({"qr": None, "status": "logueado"})
     except Exception as e:
         print(f"❌ Error en /api/whatsapp/conectar: {e}")
         return jsonify({"status": "error", "mensaje": str(e)}), 500

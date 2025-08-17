@@ -6,6 +6,41 @@ import datetime
 from playwright.async_api import async_playwright
 
 class WhatsAppServicio:
+    async def conectar_whatsapp(self):
+        """
+        Inicia sesión en WhatsApp Web y devuelve el QR como imagen base64 si es necesario.
+        Si la sesión ya está activa, devuelve None.
+        """
+        import base64
+        import io
+        from PIL import Image
+        headless = os.environ.get("RENDER") == "true"
+        async with async_playwright() as p:
+            chromium_args = ["--no-sandbox", "--disable-setuid-sandbox"]
+            if not headless:
+                chromium_args.append("--start-maximized")
+            navegador = await p.chromium.launch_persistent_context(
+                user_data_dir=self.perfil_dir,
+                headless=headless,
+                args=chromium_args
+            )
+            pagina = await navegador.new_page()
+            print("🌐 Abriendo WhatsApp Web para conexión...")
+            await pagina.goto("https://web.whatsapp.com")
+            try:
+                # Espera el QR
+                await pagina.wait_for_selector("canvas[aria-label='Código QR']", timeout=15000)
+                print("🛑 QR encontrado, capturando imagen...")
+                qr_element = await pagina.query_selector("canvas[aria-label='Código QR']")
+                qr_bytes = await qr_element.screenshot(type="png")
+                # Convertir a base64
+                qr_base64 = base64.b64encode(qr_bytes).decode("utf-8")
+                await navegador.close()
+                return qr_base64
+            except Exception as e:
+                print("✅ Sesión ya activa o QR no requerido.", e)
+                await navegador.close()
+                return None
     def __init__(self, perfil_dir="whatsapp_profile"):
         self.perfil_dir = os.path.abspath(perfil_dir)
 
