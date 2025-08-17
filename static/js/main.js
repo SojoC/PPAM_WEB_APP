@@ -126,6 +126,36 @@ function actualizarBotonEnvio() {
 function configurarWhatsapp() {
     const btnEnviar = document.getElementById('btnEnviarWhatsapp');
     if(btnEnviar) btnEnviar.addEventListener('click', enviarMensajesWhatsapp);
+
+    // Lógica para mostrar QR al conectar WhatsApp
+    const btnConectar = document.getElementById('btnConectarWhatsapp');
+    if(btnConectar) btnConectar.addEventListener('click', async function() {
+        const qrContainer = document.getElementById('qr-container');
+        const qrImage = document.getElementById('qr-image');
+        const statusDiv = document.getElementById('whatsapp-status');
+        qrContainer.style.display = 'block';
+        qrImage.src = '';
+        statusDiv.textContent = 'Conectando...';
+        try {
+            const resp = await fetch('/api/whatsapp/conectar', { method: 'POST' });
+            const data = await resp.json();
+            if(data.status === 'necesita_qr' && data.qr_code) {
+                qrImage.src = data.qr_code;
+                statusDiv.textContent = 'Escanea el QR';
+            } else if(data.status === 'logueado') {
+                qrContainer.style.display = 'none';
+                statusDiv.textContent = 'Conectado';
+            } else {
+                statusDiv.textContent = 'Desconectado';
+                qrContainer.style.display = 'none';
+                alert(data.mensaje || 'No se pudo conectar a WhatsApp.');
+            }
+        } catch (err) {
+            statusDiv.textContent = 'Desconectado';
+            qrContainer.style.display = 'none';
+            alert('Error de red al conectar WhatsApp.');
+        }
+    });
 }
 
 async function enviarMensajesWhatsapp() {
